@@ -37,20 +37,20 @@ func RunServer(cmd *cobra.Command, args []string) error {
 	s := new(tsnet.Server)
 	s.Hostname = viper.GetString("HOSTNAME")
 	s.Ephemeral = viper.GetBool("EPHEMERAL")
+	s.ControlURL = viper.GetString("CONTROL_SERVER")
 	s.AuthKey = viper.GetString("AUTH_KEY")
 	defer s.Close()
 
-	// Create a TCP listener on port 443 (standard HTTPS port)
+	// Create a TCP listener on port 80 (standard HTTP port)
 	// This listener will accept connections from other Tailscale nodes
-	ln, err := s.ListenTLS("tcp", ":443")
+	ln, err := s.Listen("tcp", ":80")
 	if err != nil {
-		return fmt.Errorf("failed to create TLS listener: %v", err)
+		return fmt.Errorf("failed to create listener: %v", err)
 	}
 	defer ln.Close()
 
 	// Get a local client to interact with the Tailscale node
 	// This client allows us to perform operations like identifying connecting users
-	log.Println("Getting local Tailscale client")
 	lc, err := s.LocalClient()
 	if err != nil {
 		return fmt.Errorf("failed to get local Tailscale client: %v", err)
@@ -93,8 +93,8 @@ func RunServer(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// Start the HTTPS server using Tailscale's TLS certificate
-	log.Println("Starting HTTPS server using Tailscale's TLS certificate...")
-	log.Printf("TailscaleKubeProxy is ready to serve requests at https://%s:443", s.Hostname)
+	// Start the HTTP server
+	log.Println("Starting HTTP server...")
+	log.Printf("TailscaleKubeProxy is ready to serve requests at http://%s", s.Hostname)
 	return http.Serve(ln, proxy)
 }
