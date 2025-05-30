@@ -107,7 +107,6 @@ func RunServer(cmd *cobra.Command, args []string) error {
 			// Set Kubernetes impersonation headers to enable RBAC based on Tailscale identity
 			// See: https://kubernetes.io/docs/reference/access-authn-authz/authentication/#user-impersonation
 			r.Header.Set("Impersonate-User", who.UserProfile.LoginName)
-			r.Header.Set("Impersonate-Uid", who.UserProfile.ID.String())
 			r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", serviceAccountToken))
 		} else {
 			log.Printf("%s %s user=unknown ip=%s", r.Method, r.URL.Path, r.RemoteAddr)
