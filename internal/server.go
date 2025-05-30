@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -89,6 +90,12 @@ func RunServer(cmd *cobra.Command, args []string) error {
 		} else {
 			log.Printf("%s %s user=unknown ip=%s", r.Method, r.URL.Path, r.RemoteAddr)
 		}
+	}
+
+	// start Tailscale connection
+	_, err = s.Up(context.TODO())
+	if err != nil {
+		return fmt.Errorf("failed to connect to tailnet: %v", err)
 	}
 
 	// Start the HTTP server
