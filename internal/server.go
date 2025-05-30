@@ -58,13 +58,13 @@ func RunServer(cmd *cobra.Command, args []string) error {
 
 	// Configure the target Kubernetes API server URL
 	// For in-cluster operation, this is typically "https://kubernetes.default.svc"
-	targetURL, err := url.Parse(viper.GetString("API_URL"))
+	kubernetesURL, err := url.Parse(viper.GetString("API_URL"))
 	if err != nil {
-		return fmt.Errorf("failed to parse target URL: %v", err)
+		return fmt.Errorf("failed to parse kubernetes URL: %v", err)
 	}
 
 	// Set up a reverse proxy to the Kubernetes API server
-	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	proxy := httputil.NewSingleHostReverseProxy(kubernetesURL)
 	originalDirector := proxy.Director
 
 	// Configure the proxy director to handle authentication and user impersonation
@@ -94,7 +94,7 @@ func RunServer(cmd *cobra.Command, args []string) error {
 	}
 
 	// Start the HTTP server
-	log.Println("Starting HTTP server...")
-	log.Printf("TailscaleKubeProxy is ready to serve requests at http://%s", s.Hostname)
+	ipv4, _ := s.TailscaleIPs()
+	log.Printf("TailscaleKubeProxy is ready to serve requests at http://%s", ipv4.String())
 	return http.Serve(ln, proxy)
 }
