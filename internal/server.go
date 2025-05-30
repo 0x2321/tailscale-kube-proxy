@@ -92,7 +92,7 @@ func RunServer(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	// start Tailscale connection
+	// Start the Tailscale connection
 	_, err = s.Up(context.TODO())
 	if err != nil {
 		return fmt.Errorf("failed to connect to tailnet: %v", err)
