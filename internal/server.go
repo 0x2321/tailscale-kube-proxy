@@ -1,0 +1,100 @@
+package internal
+
+import (
+	"fmt"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"log"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
+	"os"
+	"tailscale.com/tsnet"
+)
+
+// RunServer is the entry point for the TailscaleKubeProxy application.
+// It sets up a Tailscale node that acts as a secure proxy to a Kubernetes API server.
+func RunServer(cmd *cobra.Command, args []string) error {
+	log.SetFlags(log.LstdFlags | log.Lshortfile)
+	log.Println("Starting TailscaleKubeProxy server...")
+
+	// Log configuration parameters (without sensitive data)
+	log.Printf("Configuration: API_URL=%s, TOKEN_FILE=%s, HOSTNAME=%s, EPHEMERAL=%v",
+		viper.GetString("API_URL"),
+		viper.GetString("TOKEN_FILE"),
+		viper.GetString("HOSTNAME"),
+		viper.GetBool("EPHEMERAL"))
+
+	// Read the Kubernetes service account token from a file
+	// This token is used to authenticate to the Kubernetes API server
+	serviceAccountToken, err := os.ReadFile(viper.GetString("TOKEN_FILE"))
+	if err != nil {
+		return fmt.Errorf("failed to read service account token: %v", err)
+	}
+
+	// Initialize a new Tailscale server instance with configuration from environment
+	// This creates an embedded Tailscale node that will join your tailnet
+	s := new(tsnet.Server)
+	s.Hostname = viper.GetString("HOSTNAME")
+	s.Ephemeral = viper.GetBool("EPHEMERAL")
+	s.AuthKey = viper.GetString("AUTH_KEY")
+	defer s.Close()
+
+	// Create a TCP listener on port 443 (standard HTTPS port)
+	// This listener will accept connections from other Tailscale nodes
+	ln, err := s.ListenTLS("tcp", ":443")
+	if err != nil {
+		return fmt.Errorf("failed to create TLS listener: %v", err)
+	}
+	defer ln.Close()
+
+	// Get a local client to interact with the Tailscale node
+	// This client allows us to perform operations like identifying connecting users
+	log.Println("Getting local Tailscale client")
+	lc, err := s.LocalClient()
+	if err != nil {
+		return fmt.Errorf("failed to get local Tailscale client: %v", err)
+	}
+
+	// Configure the target Kubernetes API server URL
+	// For in-cluster operation, this is typically "https://kubernetes.default.svc"
+	targetURL, err := url.Parse(viper.GetString("API_URL"))
+	if err != nil {
+		return fmt.Errorf("failed to parse target URL: %v", err)
+	}
+
+	// Set up a reverse proxy to the Kubernetes API server
+	proxy := httputil.NewSingleHostReverseProxy(targetURL)
+	originalDirector := proxy.Director
+
+	// Configure the proxy director to handle authentication and user impersonation
+	// This maps Tailscale identities to Kubernetes RBAC permissions
+	proxy.Director = func(r *http.Request) {
+		originalDirector(r)
+
+		// Clear any existing impersonation headers
+		r.Header.Del("Impersonate-User")
+		r.Header.Del("Impersonate-Group")
+
+		// Identify the Tailscale user making the request based on their IP
+		who, err := lc.WhoIs(r.Context(), r.RemoteAddr)
+		if err == nil {
+			// Set Kubernetes impersonation headers to enable RBAC based on Tailscale identity
+			// See: https://kubernetes.io/docs/reference/access-authn-authz/authentication/#user-impersonation
+			log.Printf("Request from user: %s (ID: %s) from IP: %s",
+				who.UserProfile.LoginName,
+				who.UserProfile.ID.String(),
+				r.RemoteAddr)
+			r.Header.Set("Impersonate-User", who.UserProfile.LoginName)
+			r.Header.Set("Impersonate-Uid", who.UserProfile.ID.String())
+			r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", serviceAccountToken))
+		} else {
+			log.Printf("Failed to identify user for request from %s: %v", r.RemoteAddr, err)
+		}
+	}
+
+	// Start the HTTPS server using Tailscale's TLS certificate
+	log.Println("Starting HTTPS server using Tailscale's TLS certificate...")
+	log.Printf("TailscaleKubeProxy is ready to serve requests at https://%s:443", s.Hostname)
+	return http.Serve(ln, proxy)
+}
