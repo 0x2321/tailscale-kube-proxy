@@ -91,14 +91,16 @@ spec:
 
 TailscaleKubeProxy can be configured using command-line flags or environment variables:
 
-| Flag              | Environment Variable | Default                                               | Description                                           |
-|-------------------|----------------------|-------------------------------------------------------|-------------------------------------------------------|
-| `--apiUrl`        | `API_URL`            | `https://kubernetes.default.svc`                      | URL of the Kubernetes API server to proxy requests to |
-| `--tokenFile`     | `TOKEN_FILE`         | `/var/run/secrets/kubernetes.io/serviceaccount/token` | Path to the Kubernetes service account token file     |
-| `--hostname`      | `HOSTNAME`           | `kube-api`                                            | Hostname for this Tailscale node in the tailnet       |
-| `--authKey`       | `AUTH_KEY`           |                                                       | Tailscale authentication key                          |
-| `--ephemeral`     | `EPHEMERAL`          | `true`                                                | If true, the Tailscale node will be ephemeral         |
-| `--controlServer` | `CONTROL_SERVER`     | (defaults to Tailscale's servers if empty)            | URL of the Tailscale coordination server              |
+| Flag              | Environment Variable | Default                                                | Description                                                              |
+|-------------------|----------------------|--------------------------------------------------------|--------------------------------------------------------------------------|
+| `--apiUrl`        | `API_URL`            | `https://kubernetes.default.svc`                       | URL of the Kubernetes API server to proxy requests to                    |
+| `--tokenFile`     | `TOKEN_FILE`         | `/var/run/secrets/kubernetes.io/serviceaccount/token`  | Path to the Kubernetes service account token file                        |
+| `--clusterCaFile` | `CLUSTER_CA_FILE`    | `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt` | Path to a file containing the Kubernetes API CA certificate              |
+| `--hostname`      | `HOSTNAME`           | `kube-api`                                             | Hostname for this Tailscale node in the tailnet                          |
+| `--authKey`       | `AUTH_KEY`           |                                                        | Tailscale authentication key                                             |
+| `--ephemeral`     | `EPHEMERAL`          | `true`                                                 | If true, the Tailscale node will be ephemeral                            |
+| `--controlServer` | `CONTROL_SERVER`     | (defaults to Tailscale's servers if empty)             | URL of the Tailscale coordination server                                 |
+| `--insecure`      | `INSECURE`           | `false`                                                | If true, the Kubernetes API certificate will not be checked for validity |
 
 
 ### Building from Source

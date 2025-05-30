@@ -1,7 +1,12 @@
 package internal
 
+// Package internal contains the core functionality of the TailscaleKubeProxy application.
+// This package implements the secure proxy between Tailscale network and Kubernetes API server,
+// handling authentication, authorization, and request forwarding.
+
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -67,6 +72,23 @@ func RunServer(cmd *cobra.Command, args []string) error {
 	// Set up a reverse proxy to the Kubernetes API server
 	proxy := httputil.NewSingleHostReverseProxy(kubernetesURL)
 	originalDirector := proxy.Director
+
+	// Retrieve the certificate authority pool for secure TLS connections
+	// This includes system certificates and any custom CA certificates specified in configuration
+	caPool, err := getCaPool()
+	if err != nil {
+		return fmt.Errorf("failed to import certificates: %v", err)
+	}
+
+	// Configure the HTTP transport with TLS settings for secure communication with the Kubernetes API server
+	// This sets up the root certificate authorities and handles the insecure flag option
+	// which can be used to skip certificate validation in development environments
+	proxy.Transport = &http.Transport{
+		TLSClientConfig: &tls.Config{
+			RootCAs:            caPool,
+			InsecureSkipVerify: viper.GetBool("INSECURE"),
+		},
+	}
 
 	// Configure the proxy director to handle authentication and user impersonation
 	// This maps Tailscale identities to Kubernetes RBAC permissions

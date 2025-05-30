@@ -29,6 +29,12 @@ func init() {
 	serveCmd.Flags().String("tokenFile", "/var/run/secrets/kubernetes.io/serviceaccount/token", "Path to the Kubernetes service account token file used for authentication to the Kubernetes API server")
 	_ = viper.BindPFlag("TOKEN_FILE", serveCmd.Flags().Lookup("tokenFile"))
 
+	serveCmd.Flags().Bool("insecure", false, "If true, the Kubernetes API certificate will not be checked for validity")
+	_ = viper.BindPFlag("INSECURE", serveCmd.Flags().Lookup("insecure"))
+
+	serveCmd.Flags().String("clusterCaFile", "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt", "Path to a directory containing the Kubernetes API CA certificate")
+	_ = viper.BindPFlag("CLUSTER_CA_FILE", serveCmd.Flags().Lookup("clusterCaFile"))
+
 	serveCmd.Flags().String("hostname", "kube-api", "Hostname for this Tailscale node in the tailnet")
 	_ = viper.BindPFlag("HOSTNAME", serveCmd.Flags().Lookup("hostname"))
 
