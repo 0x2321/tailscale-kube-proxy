@@ -44,8 +44,29 @@ func RunServer(cmd *cobra.Command, args []string) error {
 	s.Hostname = viper.GetString("HOSTNAME")
 	s.Ephemeral = viper.GetBool("EPHEMERAL")
 	s.ControlURL = viper.GetString("CONTROL_SERVER")
-	s.AuthKey = viper.GetString("AUTH_KEY")
 	defer s.Close()
+
+	if authKey := viper.GetString("AUTH_KEY"); authKey != "" {
+		log.Println("Using AUTH_KEY is deprecated, please use SECRET_NAME instead.")
+		s.AuthKey = authKey
+	}
+
+	// Configure a secret store for Tailscale if SECRET_NAME is provided
+	// This allows Tailscale to store its state in a Kubernetes secret
+	if secretName := viper.GetString("SECRET_NAME"); secretName != "" {
+		store, err := NewSecretStore(secretName)
+		if err != nil {
+			return fmt.Errorf("failed to read secret: %v", err)
+		}
+
+		authKey, err := store.GetAuthKey()
+		if err != nil {
+			return fmt.Errorf("failed to read auth key: %v", err)
+		}
+
+		s.AuthKey = authKey
+		s.Store = store
+	}
 
 	// Create a TCP listener on port 80 (standard HTTP port)
 	// This listener will accept connections from other Tailscale nodes

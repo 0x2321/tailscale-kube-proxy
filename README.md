@@ -35,6 +35,9 @@ rules:
 - apiGroups: [""]
   resources: ["users", "groups", "serviceaccounts"]
   verbs: ["impersonate"]
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -78,11 +81,8 @@ spec:
       - name: proxy
         image: ghcr.io/0x2321/tailscale-kube-proxy:latest
         env:
-        - name: AUTH_KEY
-          valueFrom:
-            secretKeyRef:
-              name: tailscale-kube-proxy-secret
-              key: authKey
+        - name: SECRET_NAME
+          value: "tailscale-kube-proxy-secret"
         - name: HOSTNAME
           value: "awesome-cluster"
 ```

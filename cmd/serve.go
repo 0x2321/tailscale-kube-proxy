@@ -38,7 +38,7 @@ func init() {
 	serveCmd.Flags().String("hostname", "kube-api", "Hostname for this Tailscale node in the tailnet")
 	_ = viper.BindPFlag("HOSTNAME", serveCmd.Flags().Lookup("hostname"))
 
-	serveCmd.Flags().String("authKey", "", "Tailscale authentication key used to register this node with your tailnet")
+	serveCmd.Flags().String("authKey", "", "(DEPRECATED USE secretName) Tailscale authentication key used to register this node with your tailnet")
 	_ = viper.BindPFlag("AUTH_KEY", serveCmd.Flags().Lookup("authKey"))
 
 	serveCmd.Flags().Bool("ephemeral", true, "If true, the Tailscale node will be ephemeral (not saved in the node list after shutdown)")
@@ -46,6 +46,9 @@ func init() {
 
 	serveCmd.Flags().String("controlServer", "", "URL of the Tailscale coordination server (defaults to Tailscale's servers if empty)")
 	_ = viper.BindPFlag("CONTROL_SERVER", serveCmd.Flags().Lookup("controlServer"))
+
+	serveCmd.Flags().String("secretName", "", "Name of the Kubernetes secret to store Tailscale state")
+	_ = viper.BindPFlag("SECRET_NAME", serveCmd.Flags().Lookup("secretName"))
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
