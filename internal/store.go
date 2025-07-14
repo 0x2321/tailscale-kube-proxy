@@ -57,7 +57,11 @@ func (s *SecretStore) ReadState(id ipn.StateKey) ([]byte, error) {
 		return nil, err
 	}
 
-	return secret.Data[string(id)], nil
+	if data, ok := secret.Data[string(id)]; ok {
+		return data, nil
+	}
+
+	return nil, ipn.ErrStateNotExist
 }
 
 func (s *SecretStore) WriteState(id ipn.StateKey, bs []byte) error {
