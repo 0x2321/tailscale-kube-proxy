@@ -44,7 +44,6 @@ func RunServer(cmd *cobra.Command, args []string) error {
 	s.Hostname = viper.GetString("HOSTNAME")
 	s.Ephemeral = viper.GetBool("EPHEMERAL")
 	s.ControlURL = viper.GetString("CONTROL_SERVER")
-	defer s.Close()
 
 	if authKey := viper.GetString("AUTH_KEY"); authKey != "" {
 		log.Println("Using AUTH_KEY is deprecated, please use SECRET_NAME instead.")
@@ -67,6 +66,8 @@ func RunServer(cmd *cobra.Command, args []string) error {
 		s.AuthKey = authKey
 		s.Store = store
 	}
+
+	defer s.Close()
 
 	// Create a TCP listener on port 80 (standard HTTP port)
 	// This listener will accept connections from other Tailscale nodes
