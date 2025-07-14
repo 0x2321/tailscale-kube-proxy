@@ -10,6 +10,8 @@ It creates a Tailscale node that acts as a reverse proxy to your Kubernetes API,
 
 The proxy runs inside a Kubernetes cluster with appropriate service account permissions and exposes the Kubernetes API over Tailscale, allowing authorized Tailscale users to securely access the Kubernetes API without exposing it to the public internet.
 
+This project is also suitable for Headscale, as it doesn't require an OAuth client.
+
 ## Usage
 
 ### Running in Kubernetes
@@ -93,13 +95,13 @@ TailscaleKubeProxy can be configured using command-line flags or environment var
 
 | Flag              | Environment Variable | Default                                                | Description                                                              |
 |-------------------|----------------------|--------------------------------------------------------|--------------------------------------------------------------------------|
+| `--hostname`      | `HOSTNAME`           | `kube-api`                                             | Hostname for this Tailscale node in the tailnet                          |
+| `--secretName`    | `SECRET_NAME`        |                                                        | Name of the Kubernetes secret to store Tailscale state and auth key      |
+| `--ephemeral`     | `EPHEMERAL`          | `true`                                                 | If true, the Tailscale node will be ephemeral                            |
+| `--controlServer` | `CONTROL_SERVER`     | (defaults to Tailscale's servers if empty)             | URL of the Tailscale coordination server                                 |
 | `--apiUrl`        | `API_URL`            | `https://kubernetes.default.svc`                       | URL of the Kubernetes API server to proxy requests to                    |
 | `--tokenFile`     | `TOKEN_FILE`         | `/var/run/secrets/kubernetes.io/serviceaccount/token`  | Path to the Kubernetes service account token file                        |
 | `--clusterCaFile` | `CLUSTER_CA_FILE`    | `/var/run/secrets/kubernetes.io/serviceaccount/ca.crt` | Path to a file containing the Kubernetes API CA certificate              |
-| `--hostname`      | `HOSTNAME`           | `kube-api`                                             | Hostname for this Tailscale node in the tailnet                          |
-| `--authKey`       | `AUTH_KEY`           |                                                        | Tailscale authentication key                                             |
-| `--ephemeral`     | `EPHEMERAL`          | `true`                                                 | If true, the Tailscale node will be ephemeral                            |
-| `--controlServer` | `CONTROL_SERVER`     | (defaults to Tailscale's servers if empty)             | URL of the Tailscale coordination server                                 |
 | `--insecure`      | `INSECURE`           | `false`                                                | If true, the Kubernetes API certificate will not be checked for validity |
 
 
