@@ -47,7 +47,7 @@ func (s *SecretStore) GetAuthKey() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	return string(secret.Data["authKey"]), nil
 }
 
@@ -56,8 +56,6 @@ func (s *SecretStore) ReadState(id ipn.StateKey) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	fmt.Println(secret.Data[string(id)])
 
 	return secret.Data[string(id)], nil
 }
