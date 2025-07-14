@@ -57,13 +57,7 @@ func RunServer(cmd *cobra.Command, args []string) error {
 		if err != nil {
 			return fmt.Errorf("failed to read secret: %v", err)
 		}
-
-		authKey, err := store.GetAuthKey()
-		if err != nil {
-			return fmt.Errorf("failed to read auth key: %v", err)
-		}
-
-		s.AuthKey = authKey
+		s.AuthKey = store.AuthKey
 		s.Store = store
 	}
 
