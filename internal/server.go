@@ -8,13 +8,15 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"time"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	"tailscale.com/tsnet"
 )
 
@@ -130,10 +132,34 @@ func RunServer(cmd *cobra.Command, args []string) error {
 	}
 
 	// Start the Tailscale connection
-	_, err = s.Up(context.TODO())
-	if err != nil {
+	if _, err := s.Up(cmd.Context()); err != nil {
 		return fmt.Errorf("failed to connect to tailnet: %v", err)
 	}
+
+	// Start a watchdog to monitor Tailscale status
+	go func() {
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-cmd.Context().Done():
+				return
+			case <-ticker.C:
+				ctx, cancel := context.WithTimeout(cmd.Context(), 10*time.Second)
+				status, err := lc.Status(ctx)
+				cancel()
+				if err != nil {
+					log.Printf("watchdog: tailscale status error: %v", err)
+					os.Exit(1)
+				}
+				if status.BackendState != "Running" {
+					log.Printf("watchdog: backend is not running (%s). exiting...", status.BackendState)
+					os.Exit(1)
+				}
+			}
+		}
+	}()
 
 	// Start the HTTP server
 	ipv4, _ := s.TailscaleIPs()
