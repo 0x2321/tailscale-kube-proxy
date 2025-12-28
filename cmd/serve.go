@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"tailscaleKubeProxy/internal"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"tailscaleKubeProxy/internal"
 )
 
 // serveCmd represents the serve command

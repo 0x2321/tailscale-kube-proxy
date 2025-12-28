@@ -7,8 +7,9 @@ package internal
 import (
 	"crypto/x509"
 	"fmt"
-	"github.com/spf13/viper"
 	"os"
+
+	"github.com/spf13/viper"
 )
 
 // getCaPool creates and returns a certificate pool for TLS connections.
@@ -27,11 +28,11 @@ func getCaPool() (*x509.CertPool, error) {
 	if filePath := viper.GetString("CLUSTER_CA_FILE"); filePath != "" {
 		data, err := os.ReadFile(filePath)
 		if err != nil {
-			return nil, fmt.Errorf("error reading CA file: %v", err)
+			return nil, fmt.Errorf("failed to read CA file %q: %w", filePath, err)
 		}
 
 		if ok := caPool.AppendCertsFromPEM(data); !ok {
-			return nil, fmt.Errorf("no certificates found in CA file")
+			return nil, fmt.Errorf("failed to parse certificates from CA file %q: no valid PEM certificates found", filePath)
 		}
 	}
 

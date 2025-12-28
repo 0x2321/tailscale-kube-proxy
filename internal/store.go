@@ -5,6 +5,11 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log"
+	"os"
+	"sync"
+	"time"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -14,11 +19,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/cache"
-	"log"
-	"os"
-	"sync"
 	"tailscale.com/ipn"
-	"time"
 )
 
 // SecretStore provides persistent storage for Tailscale state using Kubernetes Secrets.
@@ -46,19 +47,20 @@ func NewSecretStore(name string) (*SecretStore, error) {
 	// Initialize Kubernetes in-cluster client configuration
 	clusterConfig, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get in-cluster Kubernetes config: %w", err)
 	}
 
 	client, err := kubernetes.NewForConfig(clusterConfig)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create Kubernetes client: %w", err)
 	}
 	store.client = client
 
 	// Determine the current namespace from the service account
-	namespace, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+	namespaceFile := "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	namespace, err := os.ReadFile(namespaceFile)
 	if err != nil {
-		return nil, fmt.Errorf("reading service account namespace: %v", err)
+		return nil, fmt.Errorf("failed to read service account namespace from %q: %w", namespaceFile, err)
 	}
 	store.namespace = string(namespace)
 
@@ -106,15 +108,18 @@ func NewSecretStore(name string) (*SecretStore, error) {
 func (s *SecretStore) updateSecret() error {
 	newData, err := json.Marshal(s.Data)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to marshal secret data: %w", err)
 	}
 
 	patch := []byte(`{"data":{"state":"` + base64.StdEncoding.EncodeToString(newData) + `"}}`)
 	_, err = s.client.CoreV1().
 		Secrets(s.namespace).
 		Patch(context.Background(), s.name, types.StrategicMergePatchType, patch, metav1.PatchOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to patch secret %q in namespace %q: %w", s.name, s.namespace, err)
+	}
 
-	return err
+	return nil
 }
 
 // ReadState retrieves state data for the given Tailscale state key.

@@ -5,15 +5,11 @@ package internal
 // handling authentication, authorization, and request forwarding.
 
 import (
-	"context"
-	"crypto/tls"
 	"fmt"
 	"log"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"os"
-	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -35,9 +31,10 @@ func RunServer(cmd *cobra.Command, args []string) error {
 
 	// Read the Kubernetes service account token from a file
 	// This token is used to authenticate to the Kubernetes API server
-	serviceAccountToken, err := os.ReadFile(viper.GetString("TOKEN_FILE"))
+	tokenFile := viper.GetString("TOKEN_FILE")
+	serviceAccountToken, err := os.ReadFile(tokenFile)
 	if err != nil {
-		return fmt.Errorf("failed to read service account token: %v", err)
+		return fmt.Errorf("failed to read service account token from %q: %w", tokenFile, err)
 	}
 
 	// Initialize a new Tailscale server instance with configuration from environment
@@ -48,7 +45,7 @@ func RunServer(cmd *cobra.Command, args []string) error {
 	s.ControlURL = viper.GetString("CONTROL_SERVER")
 
 	if authKey := viper.GetString("AUTH_KEY"); authKey != "" {
-		log.Println("Using AUTH_KEY is deprecated, please use SECRET_NAME instead.")
+		log.Println("WARNING: Using AUTH_KEY is deprecated, please use SECRET_NAME instead.")
 		s.AuthKey = authKey
 	}
 
@@ -57,7 +54,7 @@ func RunServer(cmd *cobra.Command, args []string) error {
 	if secretName := viper.GetString("SECRET_NAME"); secretName != "" {
 		store, err := NewSecretStore(secretName)
 		if err != nil {
-			return fmt.Errorf("failed to read secret: %v", err)
+			return fmt.Errorf("failed to initialize secret store for %q: %w", secretName, err)
 		}
 		s.AuthKey = store.AuthKey
 		s.Store = store
@@ -67,9 +64,10 @@ func RunServer(cmd *cobra.Command, args []string) error {
 
 	// Create a TCP listener on port 80 (standard HTTP port)
 	// This listener will accept connections from other Tailscale nodes
-	ln, err := s.Listen("tcp", ":80")
+	listenAddr := ":80"
+	ln, err := s.Listen("tcp", listenAddr)
 	if err != nil {
-		return fmt.Errorf("failed to create listener: %v", err)
+		return fmt.Errorf("failed to create listener on %q: %w", listenAddr, err)
 	}
 	defer ln.Close()
 
@@ -77,92 +75,53 @@ func RunServer(cmd *cobra.Command, args []string) error {
 	// This client allows us to perform operations like identifying connecting users
 	lc, err := s.LocalClient()
 	if err != nil {
-		return fmt.Errorf("failed to get local Tailscale client: %v", err)
+		return fmt.Errorf("failed to get local Tailscale client: %w", err)
 	}
 
 	// Configure the target Kubernetes API server URL
 	// For in-cluster operation, this is typically "https://kubernetes.default.svc"
-	kubernetesURL, err := url.Parse(viper.GetString("API_URL"))
+	apiURL := viper.GetString("API_URL")
+	kubernetesURL, err := url.Parse(apiURL)
 	if err != nil {
-		return fmt.Errorf("failed to parse kubernetes URL: %v", err)
+		return fmt.Errorf("failed to parse kubernetes API URL %q: %w", apiURL, err)
 	}
 
 	// Set up a reverse proxy to the Kubernetes API server
-	proxy := httputil.NewSingleHostReverseProxy(kubernetesURL)
-	originalDirector := proxy.Director
-
-	// Retrieve the certificate authority pool for secure TLS connections
-	// This includes system certificates and any custom CA certificates specified in configuration
-	caPool, err := getCaPool()
+	proxy, err := newKubernetesProxy(kubernetesURL, lc, string(serviceAccountToken))
 	if err != nil {
-		return fmt.Errorf("failed to import certificates: %v", err)
-	}
-
-	// Configure the HTTP transport with TLS settings for secure communication with the Kubernetes API server
-	// This sets up the root certificate authorities and handles the insecure flag option
-	// which can be used to skip certificate validation in development environments
-	proxy.Transport = &http.Transport{
-		TLSClientConfig: &tls.Config{
-			RootCAs:            caPool,
-			InsecureSkipVerify: viper.GetBool("INSECURE"),
-		},
-	}
-
-	// Configure the proxy director to handle authentication and user impersonation
-	// This maps Tailscale identities to Kubernetes RBAC permissions
-	proxy.Director = func(r *http.Request) {
-		originalDirector(r)
-
-		// Clear any existing impersonation headers
-		r.Header.Del("Impersonate-User")
-		r.Header.Del("Impersonate-Group")
-
-		// Identify the Tailscale user making the request based on their IP
-		who, err := lc.WhoIs(r.Context(), r.RemoteAddr)
-		if err == nil {
-			log.Printf("%s %s user=%s ip=%s", r.Method, r.URL.Path, who.UserProfile.LoginName, r.RemoteAddr)
-
-			// Set Kubernetes impersonation headers to enable RBAC based on Tailscale identity
-			// See: https://kubernetes.io/docs/reference/access-authn-authz/authentication/#user-impersonation
-			r.Header.Set("Impersonate-User", who.UserProfile.LoginName)
-			r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", serviceAccountToken))
-		} else {
-			log.Printf("%s %s user=unknown ip=%s", r.Method, r.URL.Path, r.RemoteAddr)
-		}
+		return fmt.Errorf("failed to initialize kubernetes proxy: %w", err)
 	}
 
 	// Start the Tailscale connection
 	if _, err := s.Up(cmd.Context()); err != nil {
-		return fmt.Errorf("failed to connect to tailnet: %v", err)
+		return fmt.Errorf("failed to connect to tailnet: %w", err)
 	}
 
 	// Start a watchdog to monitor Tailscale status
-	go func() {
-		ticker := time.NewTicker(30 * time.Second)
-		defer ticker.Stop()
-
-		for {
-			select {
-			case <-cmd.Context().Done():
-				return
-			case <-ticker.C:
-				ctx, cancel := context.WithTimeout(cmd.Context(), 10*time.Second)
-				status, err := lc.Status(ctx)
-				cancel()
-				if err != nil {
-					log.Printf("watchdog: tailscale status error: %v", err)
-					os.Exit(1)
-				}
-				if status.BackendState != "Running" {
-					log.Printf("watchdog: backend is not running (%s). exiting...", status.BackendState)
-					os.Exit(1)
-				}
-			}
-		}
-	}()
+	tsError := startTailscaleWatchdog(cmd.Context(), lc)
 
 	// Start the HTTP server
 	ipv4, _ := s.TailscaleIPs()
 	log.Printf("TailscaleKubeProxy is ready to serve requests at http://%s", ipv4.String())
-	return http.Serve(ln, proxy)
+
+	// Create a channel to listen for errors from the server
+	serverError := make(chan error, 1)
+
+	// Start the HTTP server in a goroutine
+	go func() {
+		serverError <- http.Serve(ln, proxy)
+	}()
+
+	// Wait for either the context to be canceled or the server to return an error
+	select {
+	case <-cmd.Context().Done():
+		log.Println("Shutting down TailscaleKubeProxy server...")
+		// The listener will be closed by the deferred ln.Close()
+		// and the Tailscale server by the deferred s.Close()
+		return nil
+	case err := <-tsError:
+		return fmt.Errorf("connection error: %v", err)
+	case err := <-serverError:
+		return fmt.Errorf("HTTP server error: %v", err)
+	}
 }

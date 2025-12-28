@@ -9,8 +9,20 @@
 // to securely access the Kubernetes API without exposing it to the public internet.
 package main
 
-import "tailscaleKubeProxy/cmd"
+import (
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
+	"tailscaleKubeProxy/cmd"
+)
 
 func main() {
-	cmd.Execute()
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer cancel()
+
+	// We pass the context to the Execute function if we modify it to accept it,
+	// or we use a global way if cobra doesn't support it directly in this version.
+	// Actually, the best way for Cobra is often to use the command's context.
+	cmd.Execute(ctx)
 }
