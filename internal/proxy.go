@@ -17,7 +17,7 @@ import (
 // and adds impersonation headers based on the Tailscale identity of the caller.
 func newKubernetesProxy(target *url.URL, lc *local.Client, token string) (*httputil.ReverseProxy, error) {
 	proxy := httputil.NewSingleHostReverseProxy(target)
-	originalDirector := proxy.Director
+	originalRewrite := proxy.Rewrite
 
 	// Retrieve the certificate authority pool for secure TLS connections
 	// This includes system certificates and any custom CA certificates specified in configuration
@@ -36,28 +36,31 @@ func newKubernetesProxy(target *url.URL, lc *local.Client, token string) (*httpu
 		},
 	}
 
-	// Configure the proxy director to handle authentication and user impersonation
+	// Configure the proxy to handle authentication and user impersonation
 	// This maps Tailscale identities to Kubernetes RBAC permissions
-	proxy.Director = func(r *http.Request) {
-		originalDirector(r)
+	proxy.Rewrite = func(r *httputil.ProxyRequest) {
+		originalRewrite(r)
 
 		// Clear any existing impersonation headers to prevent header injection
-		r.Header.Del("Impersonate-User")
-		r.Header.Del("Impersonate-Group")
+		// TODO: Is this needed with Rewrite?
+		r.Out.Header.Del("Impersonate-User")
+		r.Out.Header.Del("Impersonate-Group")
 
 		// Identify the Tailscale user making the request based on their IP
-		who, err := lc.WhoIs(r.Context(), r.RemoteAddr)
+		who, err := lc.WhoIs(r.Out.Context(), r.In.RemoteAddr)
 		if err == nil {
-			log.Printf("%s %s user=%s ip=%s", r.Method, r.URL.Path, who.UserProfile.LoginName, r.RemoteAddr)
+			log.Printf("%s %s user=%s ip=%s", r.In.Method, r.In.URL.Path, who.UserProfile.LoginName, r.In.RemoteAddr)
 
 			// Set Kubernetes impersonation headers to enable RBAC based on Tailscale identity
 			// See: https://kubernetes.io/docs/reference/access-authn-authz/authentication/#user-impersonation
-			r.Header.Set("Impersonate-User", who.UserProfile.LoginName)
-			r.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
+			r.Out.Header.Set("Impersonate-User", who.UserProfile.LoginName)
+			r.Out.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 		} else {
-			log.Printf("Warning: failed to identify Tailscale user for %s: %v", r.RemoteAddr, err)
-			log.Printf("%s %s user=unknown ip=%s", r.Method, r.URL.Path, r.RemoteAddr)
+			log.Printf("Warning: failed to identify Tailscale user for %s: %v", r.In.RemoteAddr, err)
+			log.Printf("%s %s user=unknown ip=%s", r.In.Method, r.In.URL.Path, r.In.RemoteAddr)
 		}
+
+		r.SetXForwarded()
 	}
 
 	return proxy, nil
