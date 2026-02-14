@@ -4,13 +4,12 @@ A secure Kubernetes API proxy using Tailscale's secure networking.
 
 ## Description
 
-TailscaleKubeProxy provides secure access to a Kubernetes API server over Tailscale network without exposing it to the public internet.
+TailscaleKubeProxy is a lightweight bridge that connects your Tailscale network to your Kubernetes API. It allows you to securely manage your clusters from anywhere without exposing them to the internet.
 
-It creates a Tailscale node that acts as a reverse proxy to your Kubernetes API, mapping Tailscale identities to Kubernetes identities for authentication and authorization. This allows you to securely access your Kubernetes cluster from anywhere using your Tailscale credentials.
+For more information, see the blog post: [Kubernetes API access over Tailscale](https://0x2321.de/kubernetes-api-access-over-tailscale/)
 
-The proxy runs inside a Kubernetes cluster with appropriate service account permissions and exposes the Kubernetes API over Tailscale, allowing authorized Tailscale users to securely access the Kubernetes API without exposing it to the public internet.
-
-This project is also suitable for Headscale, as it doesn't require an OAuth client.
+### How it works
+The proxy automatically maps Tailscale identities to Kubernetes users using impersonation. This means you can use your existing Kubernetes RBAC policies to control access based on Tailscale login names.
 
 ## Usage
 
