@@ -28,7 +28,6 @@ func newKubernetesProxy(target *url.URL, lc *local.Client, token string) (*httpu
 		// This maps Tailscale identities to Kubernetes RBAC permissions
 		Rewrite: func(r *httputil.ProxyRequest) {
 			r.SetURL(target)
-			r.Out.Host = r.In.Host
 
 			// Clear any existing impersonation headers to prevent header injection
 			// TODO: Is this needed with Rewrite?
