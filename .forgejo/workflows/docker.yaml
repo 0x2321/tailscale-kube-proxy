@@ -35,8 +35,5 @@ jobs:
         with:
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: 
-            - codeberg.org/${{ env.FORGEJO_REPOSITORY }}:2
-            - codeberg.org/${{ env.FORGEJO_REPOSITORY }}:2.0
-            - codeberg.org/${{ env.FORGEJO_REPOSITORY }}:2.0.0
+          tags: codeberg.org/${{ env.FORGEJO_REPOSITORY }}:2
           context: .
