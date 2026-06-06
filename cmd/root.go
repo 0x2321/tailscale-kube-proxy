@@ -6,6 +6,7 @@ package cmd
 import (
 	"log"
 	"os"
+	"strings"
 	"tailscale-kube-proxy/internal/proxy"
 	"tailscale-kube-proxy/internal/tailscale"
 
@@ -61,6 +62,9 @@ func init() {
 
 	rootCmd.Flags().Bool("insecure", false, "Allow insecure connection to the Kubernetes API")
 	_ = viper.BindPFlag("insecure", rootCmd.Flags().Lookup("insecure"))
+
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 }
 
 func run(cmd *cobra.Command, args []string) error {
