@@ -71,3 +71,14 @@ func (s *Server) WhoIs(c context.Context, remoteAddr string) (*UserProfile, erro
 
 	return (*UserProfile)(resp.UserProfile), nil
 }
+
+// IsConnected returns true if the Tailscale client is connected to the Tailscale network.
+func (s *Server) IsConnected(ctx context.Context) bool {
+	status, err := s.client.StatusWithoutPeers(ctx)
+
+	if err != nil {
+		return false
+	}
+
+	return status.BackendState == "Running"
+}
