@@ -12,6 +12,7 @@ A secure Kubernetes API proxy that bridges your [Tailscale](https://tailscale.co
 ## ⚠️ Important Note on Versioning
 
 **The `latest` Docker tag is now deprecated.**
+Starting with tag `2`, the image repository has changed to `codeberg.org/0x2321/tailscale-kube-proxy`.
 
 ## 🛠 How it Works
 
@@ -69,8 +70,6 @@ metadata:
   name: tailscale-kube-proxy
   namespace: kube-system
 type: Opaque
-stringData:
-  "TS_AUTHKEY": "tskey-auth-..." # Replace with your Tailscale Auth Key
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -90,12 +89,14 @@ spec:
       serviceAccountName: tailscale-kube-proxy
       containers:
       - name: proxy
-        image: ghcr.io/0x2321/tailscale-kube-proxy:2
+        image: codeberg.org/0x2321/tailscale-kube-proxy:2
         args:
         - "--secret"
         - "tailscale-kube-proxy"
         - "--hostname"
         - "awesome-cluster"
+        - "--authkey"
+        - "YOUR_AUTH_KEY"
 ```
 
 ## ⚙️ Configuration
@@ -107,9 +108,8 @@ TailscaleKubeProxy can be configured via command-line flags or environment varia
 | `--hostname`   | `HOSTNAME`   |         | Hostname for this node in your Tailnet        |
 | `--secret`     | `SECRET`     |         | K8s secret name to store Tailscale state      |
 | `--authkey`    | `AUTHKEY`    |         | Tailscale authentication key                  |
-| `--controlurl` | `CONTROLURL` |         | Custom control URL (e.g., for Headscale)      |
+| `--controlUrl` | `CONTROLURL` |         | Custom control URL (e.g., for Headscale)      |
 | `--ephemeral`  | `EPHEMERAL`  | `false` | If true, node is removed when it goes offline |
-| `--insecure`   | `INSECURE`   | `false` | Skip K8s API certificate verification         |
 
 ## 🔗 Resources
 
