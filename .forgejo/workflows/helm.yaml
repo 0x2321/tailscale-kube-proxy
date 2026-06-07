@@ -11,7 +11,7 @@ jobs:
   build:
     runs-on: docker
     container:
-      image: alpine/helm
+      image: codeberg.org/0x2321/ci:latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -19,8 +19,6 @@ jobs:
         env:
           PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
         run: |
-          apk add --no-cache curl 
-          
           echo "Lint chart..."
           helm lint ./helm
           
