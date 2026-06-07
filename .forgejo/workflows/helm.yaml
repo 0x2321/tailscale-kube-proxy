@@ -1,0 +1,34 @@
+name: Publish Helm Chart
+enable-email-notifications: false
+
+on:
+  push:
+    paths:
+      - 'helm/**'
+      - '.forgejo/workflows/helm.yaml'
+
+jobs:
+  build:
+    runs-on: docker
+    container:
+      image: alpine/helm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Package and Upload
+        env:
+          PACKAGE_TOKEN: ${{ secrets.PACKAGE_TOKEN }}
+        run: |
+          apk add --no-cache curl 
+          
+          echo "Lint chart..."
+          helm lint ./helm
+          
+          echo "Package chart..."
+          PACKAGE_OUTPUT=$(helm package ./helm)
+          PACKAGE_FILE=$(echo $PACKAGE_OUTPUT | awk '{print $NF}')
+          
+          echo "Uploading $PACKAGE_FILE..."
+          curl --user "${FORGEJO_REPOSITORY_OWNER}:${PACKAGE_TOKEN}" \
+            -X POST --upload-file "$PACKAGE_FILE" \
+            "https://codeberg.org/api/packages/${FORGEJO_REPOSITORY_OWNER}/helm/api/charts"

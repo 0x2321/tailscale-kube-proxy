@@ -1,0 +1,4 @@
+The tailscale-kube-proxy has been installed.
+
+The proxy should now be connected to your Tailscale tailnet with the hostname "{{ .Values.ts.hostname }}".
+You can check its status in the Tailscale admin console or by running 'tailscale status' on a device connected to the same tailnet.

@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "tailscale-kube-proxy.fullname" . }}-impersonator
+  labels:
+    {{- include "tailscale-kube-proxy.labels" . | nindent 4 }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "tailscale-kube-proxy.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+roleRef:
+  kind: ClusterRole
+  name: {{ include "tailscale-kube-proxy.fullname" . }}-impersonator
+  apiGroup: rbac.authorization.k8s.io

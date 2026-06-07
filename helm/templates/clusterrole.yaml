@@ -1,0 +1,14 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "tailscale-kube-proxy.fullname" . }}-impersonator
+  labels:
+    {{- include "tailscale-kube-proxy.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["users", "groups", "serviceaccounts"]
+    verbs: ["impersonate"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["{{ include "tailscale-kube-proxy.stateSecretName" . }}"]
+    verbs: ["get", "update", "patch"]
