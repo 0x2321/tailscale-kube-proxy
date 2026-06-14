@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"k8s.io/client-go/rest"
+	"tailscale.com/ipn"
 )
 
 var (
@@ -93,32 +94,42 @@ func run(cmd *cobra.Command, args []string) error {
 		viper.Set("debug", true)
 	}
 
+	// kubernetes client config
 	log.Println("Starting TailscaleKubeProxy server...")
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		log.Fatalf("Failed to create config: %v", err)
 	}
 
+	// initialize state store
 	secretName := viper.GetString("secret_name")
-	nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
-	if err != nil {
-		log.Fatalf("Failed to read namespace: %v", err)
-	}
-	store, err := tailscale.NewKubernetesStore(string(nsBytes), secretName, config)
-	if err != nil {
-		log.Fatalf("Failed to create store: %v", err)
+	var store ipn.StateStore
+	if secretName != "" {
+		log.Printf("Using Kubernetes secret state store %s", secretName)
+		nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
+		if err != nil {
+			log.Fatalf("Failed to read namespace: %v", err)
+		}
+
+		store, err = tailscale.NewKubernetesStore(string(nsBytes), secretName, config)
+		if err != nil {
+			log.Fatalf("Failed to create store: %v", err)
+		}
 	}
 
+	// initialize tailscale server
 	ts, err := tailscale.NewServer(store)
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 	}
 	defer ts.Close()
 
+	// initialize proxy
 	server, err := proxy.NewKubeProxy(config, ts)
 	if err != nil {
 		log.Fatalf("Failed to create proxy: %v", err)
 	}
 
+	// start proxy
 	return server.Listen()
 }
