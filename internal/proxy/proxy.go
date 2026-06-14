@@ -64,7 +64,6 @@ func (r *ReverseProxy) rewrite(req *httputil.ProxyRequest) {
 	if user, err := r.ts.WhoIs(req.Out.Context(), req.In.RemoteAddr); err == nil {
 		// Bridge Tailscale identity to Kubernetes by using the proxy's own token
 		// and adding impersonation headers for the identified user.
-		req.Out.Header.Set("Impersonate-Uid", user.ID.String())
 		req.Out.Header.Set("Impersonate-User", user.LoginName)
 		for _, group := range user.Groups {
 			req.Out.Header.Add("Impersonate-Group", group)
