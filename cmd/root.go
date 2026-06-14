@@ -4,6 +4,7 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -15,6 +16,19 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+var (
+	version = "development"
+	time    = "n/a"
+	commit  = "n/a"
+)
+
+func stringWithDefault(val, defaultValue string) string {
+	if val == "" {
+		return defaultValue
+	}
+	return val
+}
+
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "tailscale-kube-proxy",
@@ -22,8 +36,11 @@ var rootCmd = &cobra.Command{
 	Long: `tailscale-kube-proxy is a tool that allows you to expose Kubernetes services 
 to your Tailscale network or vice-versa, providing a secure way to access 
 in-cluster resources.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
+	Version: fmt.Sprintf("%s (commit: %s, built at %s)",
+		stringWithDefault(version, "development"),
+		stringWithDefault(commit, "n/a"),
+		stringWithDefault(time, "n/a"),
+	),
 	RunE: run,
 }
 
@@ -71,6 +88,11 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	println(cmd.Version)
+	if stringWithDefault(version, "development") == "development" {
+		viper.Set("debug", true)
+	}
+
 	log.Println("Starting TailscaleKubeProxy server...")
 	config, err := rest.InClusterConfig()
 	if err != nil {
