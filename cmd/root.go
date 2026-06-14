@@ -48,7 +48,7 @@ func init() {
 	rootCmd.Flags().String("secret-name", "", "Name of the Kubernetes secret to store Tailscale state")
 	_ = viper.BindPFlag("secret_name", rootCmd.Flags().Lookup("secret-name"))
 
-	rootCmd.Flags().String("hostname", "", "Hostname to use for the Tailscale node")
+	rootCmd.Flags().String("hostname", "kube-proxy", "Hostname to use for the Tailscale node")
 	_ = viper.BindPFlag("ts.hostname", rootCmd.Flags().Lookup("hostname"))
 
 	rootCmd.Flags().String("authkey", "", "Tailscale authentication key")

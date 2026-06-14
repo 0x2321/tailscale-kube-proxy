@@ -24,11 +24,6 @@ type Server struct {
 func NewServer(store *KubernetesStore) (*Server, error) {
 	server := new(Server)
 
-	// Set default values for tsnet.Server if not set in config
-	if viper.GetString("ts.hostname") == "" {
-		viper.Set("ts.hostname", "tailscale-kube-proxy")
-	}
-
 	// Check if authkey is set
 	if viper.GetString("ts.authkey") == "" {
 		return nil, fmt.Errorf("authkey is required")
