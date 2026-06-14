@@ -3,12 +3,14 @@ package tailscale
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 
 	"github.com/spf13/viper"
 	"tailscale.com/client/local"
 	"tailscale.com/tailcfg"
 	"tailscale.com/tsnet"
+	"tailscale.com/types/logger"
 )
 
 // Server represents a Tailscale tsnet server instance.
@@ -22,12 +24,23 @@ type Server struct {
 func NewServer(store *KubernetesStore) (*Server, error) {
 	server := new(Server)
 
+	// Set default values for tsnet.Server if not set in config
+	if viper.GetString("ts.hostname") == "" {
+		viper.Set("ts.hostname", "tailscale-kube-proxy")
+	}
+
+	// Check if authkey is set
+	if viper.GetString("ts.authkey") == "" {
+		return nil, fmt.Errorf("authkey is required")
+	}
+
 	server.ts = &tsnet.Server{
 		Hostname:   viper.GetString("ts.hostname"),
 		AuthKey:    viper.GetString("ts.authkey"),
 		ControlURL: viper.GetString("ts.control_url"),
 		Ephemeral:  viper.GetBool("ts.ephemeral"),
 		Store:      store,
+		Logf:       logger.WithPrefix(log.Printf, "tsnet"),
 	}
 	if err := server.ts.Start(); err != nil {
 		return nil, fmt.Errorf("failed to connect tsnet server: %w", err)
