@@ -47,10 +47,12 @@ spec:
           env:
             - name: HOSTNAME
               value: {{ .Values.ts.hostname| toString | quote }}
-            - name: CONTROLURL
+            - name: CONTROL_URL
               value: {{ .Values.ts.controlUrl | toString | quote }}
             - name: EPHEMERAL
               value: {{ .Values.ts.ephemeral | toString | quote }}
+            - name: SECRET_NAME
+              value: {{ include "tailscale-kube-proxy.stateSecretName" . }}
           envFrom:
             - secretRef:
                 name: {{ include "tailscale-kube-proxy.fullname" . }}
