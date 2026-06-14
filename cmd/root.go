@@ -63,6 +63,9 @@ func init() {
 	rootCmd.Flags().Bool("insecure", false, "Allow insecure connection to the Kubernetes API")
 	_ = viper.BindPFlag("insecure", rootCmd.Flags().Lookup("insecure"))
 
+	rootCmd.Flags().Bool("debug", false, "Enable debug logging")
+	_ = viper.BindPFlag("debug", rootCmd.Flags().Lookup("debug"))
+
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 }

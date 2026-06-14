@@ -29,18 +29,26 @@ func NewServer(store *KubernetesStore) (*Server, error) {
 		return nil, fmt.Errorf("authkey is required")
 	}
 
+	// Create a new tsnet server
 	server.ts = &tsnet.Server{
 		Hostname:   viper.GetString("ts.hostname"),
 		AuthKey:    viper.GetString("ts.authkey"),
 		ControlURL: viper.GetString("ts.control_url"),
 		Ephemeral:  viper.GetBool("ts.ephemeral"),
 		Store:      store,
-		Logf:       logger.WithPrefix(log.Printf, "tsnet"),
 	}
+
+	// Enable logging if debug flag is set
+	if viper.GetBool("debug") {
+		server.ts.Logf = logger.WithPrefix(log.Printf, "tsnet")
+	}
+
+	// Start the tsnet server
 	if err := server.ts.Start(); err != nil {
 		return nil, fmt.Errorf("failed to connect tsnet server: %w", err)
 	}
 
+	// Create a local client
 	var err error
 	server.client, err = server.ts.LocalClient()
 	if err != nil {
