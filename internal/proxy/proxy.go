@@ -60,7 +60,6 @@ func (r *ReverseProxy) rewrite(req *httputil.ProxyRequest) {
 		}
 		req.Out.Header[k] = v
 	}
-	req.SetXForwarded()
 
 	if user, err := r.ts.WhoIs(req.Out.Context(), req.In.RemoteAddr); err == nil {
 		// Bridge Tailscale identity to Kubernetes by using the proxy's own token
