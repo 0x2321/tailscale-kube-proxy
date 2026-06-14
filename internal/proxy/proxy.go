@@ -80,5 +80,6 @@ func (r *ReverseProxy) rewrite(req *httputil.ProxyRequest) {
 
 // Listen starts the proxy server on the Tailscale listener.
 func (r *ReverseProxy) Listen() error {
+	log.Println("Starting proxy server...")
 	return http.Serve(r.ts.Listener(), r.http)
 }
