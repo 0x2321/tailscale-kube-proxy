@@ -28,88 +28,37 @@ TailscaleKubeProxy runs as a pod in your cluster and joins your Tailnet. When yo
 - A Tailscale Auth Key (recommended: [tagged and non-expiring](https://tailscale.com/kb/1085/auth-keys/)).
 - A Kubernetes cluster with RBAC enabled.
 
-### 2. Kubernetes Installation
+### 2. Helm Installation
 
-The proxy requires permissions to impersonate users and manage its own state in a Secret.
+Add the Helm repository:
 
-```yaml
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: tailscale-kube-proxy
-  namespace: kube-system
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: tailscale-kube-proxy-impersonator
-rules:
-- apiGroups: [""]
-  resources: ["users", "groups", "serviceaccounts"]
-  verbs: ["impersonate"]
-- apiGroups: [""]
-  resources: ["secrets"]
-  verbs: ["get", "list", "watch", "update", "patch"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: tailscale-kube-proxy-impersonator
-subjects:
-- kind: ServiceAccount
-  name: tailscale-kube-proxy
-  namespace: kube-system
-roleRef:
-  kind: ClusterRole
-  name: tailscale-kube-proxy-impersonator
-  apiGroup: rbac.authorization.k8s.io
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: tailscale-kube-proxy
-  namespace: kube-system
-type: Opaque
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: tailscale-kube-proxy
-  namespace: kube-system
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: tailscale-kube-proxy
-  template:
-    metadata:
-      labels:
-        app: tailscale-kube-proxy
-    spec:
-      serviceAccountName: tailscale-kube-proxy
-      containers:
-      - name: proxy
-        image: codeberg.org/0x2321/tailscale-kube-proxy:2
-        args:
-        - "--secret"
-        - "tailscale-kube-proxy"
-        - "--hostname"
-        - "awesome-cluster"
-        - "--authkey"
-        - "YOUR_AUTH_KEY"
+```bash
+helm repo add 0x2321 https://codeberg.org/api/packages/0x2321/helm
+helm repo update
+```
+
+Install the chart:
+
+```bash
+helm install tailscale-kube-proxy 0x2321/tailscale-kube-proxy \
+  --set ts.authKey="YOUR_AUTH_KEY" \
+  --set ts.hostname="awesome-cluster"
 ```
 
 ## ⚙️ Configuration
 
-TailscaleKubeProxy can be configured via command-line flags or environment variables. Environment variables are prefixed with nothing and use underscores (e.g., `--authkey` becomes `AUTHKEY`).
+Configuration can be done via Helm values, environment variables, or CLI arguments.
 
-| Flag           | Env Var      | Default | Description                                   |
-|----------------|--------------|---------|-----------------------------------------------|
-| `--hostname`   | `HOSTNAME`   |         | Hostname for this node in your Tailnet        |
-| `--secret`     | `SECRET`     |         | K8s secret name to store Tailscale state      |
-| `--authkey`    | `AUTHKEY`    |         | Tailscale authentication key                  |
-| `--controlUrl` | `CONTROLURL` |         | Custom control URL (e.g., for Headscale)      |
-| `--ephemeral`  | `EPHEMERAL`  | `false` | If true, node is removed when it goes offline |
+| Helm Value      | Environment Variable | CLI Argument    | Default      | Description                                            |
+|-----------------|----------------------|-----------------|--------------|--------------------------------------------------------|
+| `ts.hostname`   | `TS_HOSTNAME`        | `--hostname`    | `kubernetes` | Hostname for this node in the Tailnet                  |
+| `ts.authKey`    | `TS_AUTHKEY`         | `--authkey`     |              | Tailscale Authentication Key                           |
+| `ts.controlUrl` | `TS_CONTROL_URL`     | `--control-url` |              | Custom control URL (e.g., for Headscale)               |
+| `ts.ephemeral`  | `TS_EPHEMERAL`       | `--ephemeral`   | `false`      | If true, the node is removed when going offline        |
+| -               | `SECRET_NAME`        | `--secret-name` | `""`         | Name of the Kubernetes secret to store Tailscale state |
+| -               | `INSECURE`           | `--insecure`    | `false`      | Allow insecure connection to the Kubernetes API        |
+
+More options can be found in [values.yaml](helm/values.yaml).
 
 ## 🔗 Resources
 
