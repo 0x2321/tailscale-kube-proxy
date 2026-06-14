@@ -25,7 +25,7 @@ type KubernetesStore struct {
 }
 
 // NewKubernetesStore initializes a new store and loads existing state from the specified Secret.
-func NewKubernetesStore(namespace string, secret string, config *rest.Config) (*KubernetesStore, error) {
+func NewKubernetesStore(namespace string, secret string, config *rest.Config) (ipn.StateStore, error) {
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create kubernetes client: %w", err)

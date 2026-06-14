@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/viper"
 	"tailscale.com/client/local"
+	"tailscale.com/ipn"
 	"tailscale.com/tailcfg"
 	"tailscale.com/tsnet"
 	"tailscale.com/types/logger"
@@ -21,7 +22,7 @@ type Server struct {
 }
 
 // NewServer initializes and starts a new tsnet server using the provided Kubernetes store.
-func NewServer(store *KubernetesStore) (*Server, error) {
+func NewServer(store ipn.StateStore) (*Server, error) {
 	server := new(Server)
 
 	// Check if authkey is set
