@@ -25,7 +25,7 @@ func NewServer(store *KubernetesStore) (*Server, error) {
 	server.ts = &tsnet.Server{
 		Hostname:   viper.GetString("ts.hostname"),
 		AuthKey:    viper.GetString("ts.authkey"),
-		ControlURL: viper.GetString("ts.controlurl"),
+		ControlURL: viper.GetString("ts.control_url"),
 		Ephemeral:  viper.GetBool("ts.ephemeral"),
 		Store:      store,
 	}
