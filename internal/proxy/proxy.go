@@ -72,6 +72,7 @@ func (r *ReverseProxy) rewrite(req *httputil.ProxyRequest) {
 
 		log.Printf("%s %s user=%s ip=%s", req.In.Method, req.In.URL.Path, user.LoginName, req.In.RemoteAddr)
 	} else {
+		req.Out.Header.Set("Impersonate-User", "system:anonymous")
 		log.Printf("Warning: failed to identify Tailscale user for %s: %v", req.In.RemoteAddr, err)
 		log.Printf("%s %s user=unknown ip=%s", req.In.Method, req.In.URL.Path, req.In.RemoteAddr)
 	}
