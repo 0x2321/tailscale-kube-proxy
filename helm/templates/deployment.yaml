@@ -45,17 +45,20 @@ spec:
             {{- toYaml . | nindent 12 }}
           {{- end }}
           env:
-            - name: HOSTNAME
+            - name: TS_HOSTNAME
               value: {{ .Values.ts.hostname| toString | quote }}
-            - name: CONTROL_URL
+            - name: TS_CONTROL_URL
               value: {{ .Values.ts.controlUrl | toString | quote }}
-            - name: EPHEMERAL
+            - name: TS_EPHEMERAL
               value: {{ .Values.ts.ephemeral | toString | quote }}
             - name: SECRET_NAME
               value: {{ include "tailscale-kube-proxy.stateSecretName" . }}
           envFrom:
             - secretRef:
                 name: {{ include "tailscale-kube-proxy.fullname" . }}
+          volumeMounts:
+            - name: config-cache
+              mountPath: /.config
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -68,3 +71,6 @@ spec:
       tolerations:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      volumes:
+        - name: config-cache
+          emptyDir: { }
