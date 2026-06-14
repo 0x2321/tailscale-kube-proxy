@@ -45,8 +45,8 @@ func init() {
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
-	rootCmd.Flags().String("secret", "", "Name of the Kubernetes secret to store Tailscale state")
-	_ = viper.BindPFlag("secret", rootCmd.Flags().Lookup("secret"))
+	rootCmd.Flags().String("secret-name", "", "Name of the Kubernetes secret to store Tailscale state")
+	_ = viper.BindPFlag("secret_name", rootCmd.Flags().Lookup("secret-name"))
 
 	rootCmd.Flags().String("hostname", "", "Hostname to use for the Tailscale node")
 	_ = viper.BindPFlag("ts.hostname", rootCmd.Flags().Lookup("hostname"))
@@ -54,8 +54,8 @@ func init() {
 	rootCmd.Flags().String("authkey", "", "Tailscale authentication key")
 	_ = viper.BindPFlag("ts.authkey", rootCmd.Flags().Lookup("authkey"))
 
-	rootCmd.Flags().String("controlurl", "", "Custom Tailscale control URL (e.g. for Headscale)")
-	_ = viper.BindPFlag("ts.controlurl", rootCmd.Flags().Lookup("controlurl"))
+	rootCmd.Flags().String("control-url", "", "Custom Tailscale control URL (e.g. for Headscale)")
+	_ = viper.BindPFlag("ts.control_url", rootCmd.Flags().Lookup("control-url"))
 
 	rootCmd.Flags().Bool("ephemeral", false, "Whether to use an ephemeral Tailscale node")
 	_ = viper.BindPFlag("ts.ephemeral", rootCmd.Flags().Lookup("ephemeral"))
@@ -64,7 +64,7 @@ func init() {
 	_ = viper.BindPFlag("insecure", rootCmd.Flags().Lookup("insecure"))
 
 	viper.AutomaticEnv()
-	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 }
 
 func run(cmd *cobra.Command, args []string) error {
@@ -74,7 +74,7 @@ func run(cmd *cobra.Command, args []string) error {
 		log.Fatalf("Failed to create config: %v", err)
 	}
 
-	secretName := viper.GetString("secret")
+	secretName := viper.GetString("secret_name")
 	nsBytes, err := os.ReadFile("/var/run/secrets/kubernetes.io/serviceaccount/namespace")
 	if err != nil {
 		log.Fatalf("Failed to read namespace: %v", err)
