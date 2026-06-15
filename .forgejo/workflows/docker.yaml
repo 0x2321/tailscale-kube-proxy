@@ -25,6 +25,7 @@ jobs:
           images: codeberg.org/${{ env.FORGEJO_REPOSITORY }}
           tags: |
             type=schedule
+            type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=sha
