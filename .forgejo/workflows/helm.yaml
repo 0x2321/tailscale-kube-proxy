@@ -6,8 +6,6 @@ on:
     paths:
       - 'helm/**'
       - '.forgejo/workflows/helm.yaml'
-  release:
-    types: [ published ]
 
 jobs:
   build:
