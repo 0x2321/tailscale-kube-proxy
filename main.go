@@ -3,7 +3,7 @@ Copyright © 2026 NAME HERE <EMAIL ADDRESS>
 */
 package main
 
-import "tailscale-kube-proxy/cmd"
+import "codeberg.org/0x2321/tailscale-kube-proxy/cmd"
 
 func main() {
 	cmd.Execute()

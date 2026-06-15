@@ -7,7 +7,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
-	"tailscale-kube-proxy/internal/tailscale"
+
+	"codeberg.org/0x2321/tailscale-kube-proxy/internal/tailscale"
 
 	"k8s.io/client-go/rest"
 )

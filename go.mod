@@ -1,4 +1,4 @@
-module tailscale-kube-proxy
+module codeberg.org/0x2321/tailscale-kube-proxy
 
 go 1.26.4
 

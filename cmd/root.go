@@ -7,8 +7,9 @@ import (
 	"log"
 	"os"
 	"strings"
-	"tailscale-kube-proxy/internal/proxy"
-	"tailscale-kube-proxy/internal/tailscale"
+
+	"codeberg.org/0x2321/tailscale-kube-proxy/internal/proxy"
+	"codeberg.org/0x2321/tailscale-kube-proxy/internal/tailscale"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
