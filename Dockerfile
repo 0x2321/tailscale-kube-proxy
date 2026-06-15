@@ -5,9 +5,9 @@ WORKDIR /go/src/app
 COPY . .
 
 RUN go mod download
-RUN make build
+RUN CGO_ENABLED=0 go build -o /go/bin/app
 
 # Now copy it into our base image.
 FROM gcr.io/distroless/static-debian13
-COPY --from=build /go/src/app/tailscale-kube-proxy /app
+COPY --from=build /go/bin/app /
 CMD ["/app"]
